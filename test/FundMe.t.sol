@@ -34,4 +34,25 @@ contract FundMeTest is Test {
         console.log(fundMe.getPriceFeedVersion());
         assertEq(version, 4);
     }
+
+    function testFundFailWithoutEnoughETH() public {
+        vm.prank(fundMe.OWNER());
+        vm.expectRevert(); // next line should revert
+        fundMe.fund();
+    }
+
+    function testFundUpdatesFundedDataStructure() public {
+        vm.prank(fundMe.OWNER());
+        fundMe.fund{value: 1e18}();
+        uint256 amountFunded = fundMe.addressToAmountFunded(fundMe.OWNER());
+        assertEq(1e18, amountFunded);
+    }
+
+    function testAddsFunderToArrayOfFunders() public {
+        vm.startPrank(fundMe.OWNER());
+        fundMe.fund{value: 1e18}();
+        vm.stopPrank();
+        address funder = fundMe.getFunder(0);
+        assertEq(funder, fundMe.OWNER());
+    }
 }

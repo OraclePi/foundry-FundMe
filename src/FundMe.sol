@@ -83,6 +83,10 @@ contract FundMe {
         return priceConverter.getVersion(s_priceFeed);
     }
 
+    function getFunder(uint256 index) public view returns (address) {
+        return funders[index];
+    }
+
     receive() external payable {
         emit receiveCalled(msg.sender, msg.value);
         fund();
