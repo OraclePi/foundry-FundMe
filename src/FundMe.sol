@@ -51,17 +51,11 @@ contract FundMe {
 
     function cheaperWithdraw() public onlyOWNER {
         address[] memory funders = s_funders;
-        for (
-            uint256 funderIndex = 0;
-            funderIndex < funders.length;
-            funderIndex++
-        ) {
+        for (uint256 funderIndex = 0; funderIndex < funders.length; funderIndex++) {
             addressToAmountFunded[funders[funderIndex]] = 0;
         }
         s_funders = new address[](0);
-        (bool callSuccess, ) = payable(msg.sender).call{
-            value: address(this).balance
-        }("");
+        (bool callSuccess,) = payable(msg.sender).call{value: address(this).balance}("");
         if (!callSuccess) {
             revert callFailed();
         }
@@ -69,11 +63,7 @@ contract FundMe {
 
     function withdraw() public onlyOWNER {
         // reset the addressToAmountFunded
-        for (
-            uint256 funderIndex = 0;
-            funderIndex < s_funders.length;
-            funderIndex++
-        ) {
+        for (uint256 funderIndex = 0; funderIndex < s_funders.length; funderIndex++) {
             address funder = s_funders[funderIndex];
             addressToAmountFunded[funder] = 0;
         }
@@ -89,9 +79,7 @@ contract FundMe {
         // require(sendSuccess,"send failed");
 
         //call , no limited , returns bool and bytes
-        (bool callSuccess, ) = payable(msg.sender).call{
-            value: address(this).balance
-        }("");
+        (bool callSuccess,) = payable(msg.sender).call{value: address(this).balance}("");
         if (!callSuccess) {
             revert callFailed();
         }
