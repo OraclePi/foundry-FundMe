@@ -14,15 +14,15 @@ contract FundMe {
     uint256 public constant MINIUM_USD = 1e18;
     uint256 public version;
     uint256 public priceToUsd;
-    address[] public funders;
+    address[] public s_funders;
     address public immutable OWNER;
-    AggregatorV3Interface private s_priceFeed;
+    AggregatorV3Interface private immutable s_priceFeed;
 
     mapping(address => uint256) public addressToAmountFunded;
 
     constructor(address priceFeed) {
-        OWNER = msg.sender; // executed once the contract deployed
         s_priceFeed = AggregatorV3Interface(priceFeed);
+        OWNER = msg.sender; // executed once the contract deployed
     }
 
     modifier onlyOWNER() {
@@ -39,28 +39,46 @@ contract FundMe {
 
     event fallbackCalled(address sender, uint256 value, bytes data);
 
-    function fund() public payable onlyOWNER {
+    function fund() public payable {
         if (msg.value.getConversionRate(s_priceFeed) <= MINIUM_USD) {
             revert notEnoughUsd();
         }
-        funders.push(msg.sender);
+        s_funders.push(msg.sender);
         version = priceConverter.getVersion(s_priceFeed);
         priceToUsd = priceConverter.getPrice(s_priceFeed);
         addressToAmountFunded[msg.sender] += msg.value;
+    }
+
+    function cheaperWithdraw() public onlyOWNER {
+        address[] memory funders = s_funders;
+        for (
+            uint256 funderIndex = 0;
+            funderIndex < funders.length;
+            funderIndex++
+        ) {
+            addressToAmountFunded[funders[funderIndex]] = 0;
+        }
+        s_funders = new address[](0);
+        (bool callSuccess, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        if (!callSuccess) {
+            revert callFailed();
+        }
     }
 
     function withdraw() public onlyOWNER {
         // reset the addressToAmountFunded
         for (
             uint256 funderIndex = 0;
-            funderIndex < funders.length;
+            funderIndex < s_funders.length;
             funderIndex++
         ) {
-            address funder = funders[funderIndex];
+            address funder = s_funders[funderIndex];
             addressToAmountFunded[funder] = 0;
         }
-        // re-initialize the funders
-        funders = new address[](0);
+        // re-initialize the s_funders
+        s_funders = new address[](0);
 
         // // withdraw the fund using transfer , send , call
         // // transfer , limited up to 2300 gas , pop up failure
@@ -84,7 +102,7 @@ contract FundMe {
     }
 
     function getFunder(uint256 index) public view returns (address) {
-        return funders[index];
+        return s_funders[index];
     }
 
     receive() external payable {

@@ -74,8 +74,9 @@ contract FundMeTest is Test {
         uint256 startingFundMeBalance = address(fundMe).balance;
 
         //Act
-        vm.prank(fundMe.OWNER());
+        vm.startPrank(fundMe.OWNER());
         fundMe.withdraw();
+        vm.stopPrank();
 
         //Assert
         uint256 endingFunderBalance = fundMe.OWNER().balance;
@@ -92,21 +93,31 @@ contract FundMeTest is Test {
         //Arrange
         uint256 numberOfFunders = 10;
         uint256 startingFunderIndex = 0;
-
-        for (uint160 i = 1; i < numberOfFunders; i++) {
+        vm.txGasPrice(1);
+        uint256 gasStart = gasleft();
+        for (uint160 i = 0; i < numberOfFunders + startingFunderIndex; i++) {
             hoax(address(i), 1e18);
-            vm.startPrank(address(i));
+            // vm.startPrank(address(i));
+            // vm.deal(address(i), 1e18);
             fundMe.fund{value: 1e18}();
-            vm.stopPrank();
+            // vm.stopPrank();
         }
-        uint256 startingFunderBalance = fundMe.OWNER().balance;
+        uint256 gasEnd = gasleft();
+        console.log("gasUsed: ", (gasStart - gasEnd));
+        uint256 startingOWNERBalance = fundMe.OWNER().balance;
         uint256 startingFundMeBalance = address(fundMe).balance;
 
         //Act
         vm.startPrank(fundMe.OWNER());
-        fundMe.withdraw();
+        fundMe.cheaperWithdraw();
+        // fundMe.withdraw();
         vm.stopPrank();
 
         //Assert
+        assertEq(address(fundMe).balance, 0);
+        assertEq(
+            startingOWNERBalance + startingFundMeBalance,
+            fundMe.OWNER().balance
+        );
     }
 }
